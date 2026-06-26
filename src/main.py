@@ -12,37 +12,32 @@ from parameters import (
 
 from apwm_model import (
     calculate_model_parameters,
+    build_state_space_matrices,
 )
 
 
 def main():
-    """
-    APWM 모델 계산 실행
-    """
-
-    # MATLAB
-    # Duty = 0.185
-    # F_sn = 1.05
-    # R = 20Ω
-
     case = get_apwm_case(
         duty=0.185,
         f_sn=1.05,
         load_resistance=20.0,
     )
 
-    # MATLAB 앞부분 계산
     params = calculate_derived_parameters(case)
-
-    # MATLAB 중간 계산
     model = calculate_model_parameters(params)
 
-    print("=" * 50)
-    print("APWM Small Signal Parameters")
-    print("=" * 50)
+    a_matrix, b_matrix, c_matrix, d_matrix = build_state_space_matrices(
+        params,
+        model,
+    )
 
-    for key, value in model.items():
-        print(f"{key:20s} : {value}")
+    print("A shape:", a_matrix.shape)
+    print("B shape:", b_matrix.shape)
+    print("C shape:", c_matrix.shape)
+    print("D shape:", d_matrix.shape)
+
+    print("\nA matrix:")
+    print(a_matrix)
 
 
 if __name__ == "__main__":
