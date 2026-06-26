@@ -1,10 +1,3 @@
-"""
-main.py
-
-MATLAB cal_parameter_APWM.m 실행 흐름을
-Python으로 재현하는 첫 번째 단계
-"""
-
 from parameters import (
     get_apwm_case,
     calculate_derived_parameters,
@@ -13,6 +6,8 @@ from parameters import (
 from apwm_model import (
     calculate_model_parameters,
     build_state_space_matrices,
+    build_state_space_system,
+    extract_transfer_function,
 )
 
 
@@ -31,13 +26,23 @@ def main():
         model,
     )
 
-    print("A shape:", a_matrix.shape)
-    print("B shape:", b_matrix.shape)
-    print("C shape:", c_matrix.shape)
-    print("D shape:", d_matrix.shape)
+    system = build_state_space_system(
+        a_matrix,
+        b_matrix,
+        c_matrix,
+        d_matrix,
+    )
 
-    print("\nA matrix:")
-    print(a_matrix)
+    # MATLAB: Input = 2, Output = 1
+    # Python: input_index = 1, output_index = 0
+    g_vd = extract_transfer_function(
+        system,
+        input_index=1,
+        output_index=0,
+    )
+
+    print("Duty-to-Output Transfer Function:")
+    print(g_vd)
 
 
 if __name__ == "__main__":

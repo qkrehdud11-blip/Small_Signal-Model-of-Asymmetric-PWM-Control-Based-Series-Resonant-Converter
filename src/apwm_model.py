@@ -8,6 +8,7 @@ cal_parameter_APWM.m
 """
 
 import numpy as np
+import control
 
 
 def calculate_model_parameters(params):
@@ -198,3 +199,31 @@ def build_state_space_matrices(params, model):
     ])
 
     return a_matrix, b_matrix, c_matrix, d_matrix
+
+
+def build_state_space_system(a_matrix, b_matrix, c_matrix, d_matrix):
+    """
+    A, B, C, D 행렬을 이용해 상태공간 시스템을 생성합니다.
+    """
+    return control.ss(a_matrix, b_matrix, c_matrix, d_matrix)
+
+
+def extract_transfer_function(system, input_index=1, output_index=0):
+    """
+    MATLAB:
+        [num, den] = ss2tf(A, B, C, D, Input)
+        G = tf(num(Output, :), den)
+
+    Python:
+        StateSpace에서 원하는 SISO 전달함수를 추출한 뒤
+        TransferFunction 형태로 변환합니다.
+    """
+
+    # MATLAB Input=2, Output=1
+    # Python input_index=1, output_index=0
+    siso_system = system[output_index, input_index]
+
+    # StateSpace -> TransferFunction
+    transfer_function = control.ss2tf(siso_system)
+
+    return transfer_function
