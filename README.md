@@ -1,38 +1,75 @@
-# Small-Signal Model of APWM Series Resonant Converter
+# APWM Series Resonant Converter Small-Signal Model
 
-비대칭 PWM(Asymmetric PWM, APWM) 제어 기반 직렬 공진형 컨버터의 소신호 모델을 Python으로 구현하고, 논문에서 제시한 주파수 응답 결과를 PLECS 데이터와 비교하는 프로젝트입니다.
+비대칭 PWM(Asymmetric PWM, APWM) 제어 기반 직렬 공진형 컨버터의 소신호 모델을 Python으로 구현하고, PLECS 주파수 응답 데이터와 비교한 프로젝트입니다. 논문의 모델링 흐름을 기준으로 Matlab 계산식을 Python으로 옮기고, Fig.3/Fig.4 주파수 응답을 재현했습니다.
 
-이 프로젝트는 다음 자료를 기준으로 정리했습니다.
+## Paper Summary
 
-- 논문: `비대칭 PWM 제어 기반 직렬 공진형 컨버터의 소신호 모델링_박도영_241122.pdf`
-- Matlab 기준 코드: `C2402(Dbpia_published)/Matlab/cal_parameter_APWM.m`
-- Matlab Fig.4 기준 코드: `C2402(Dbpia_published)/Matlab/Control_to_Output_Duty_Paper.m`
-- PLECS 검증 데이터: `data/*.csv`
+직렬 공진형 컨버터(SRC)는 공진 탱크의 교류 성분이 지배적이기 때문에 일반적인 상태공간 평균화만으로는 공진 동작을 충분히 반영하기 어렵습니다. 논문은 APWM 구동 파형과 정류단 비선형성을 EDF(Extended Describing Function)로 근사한 뒤, 정상상태 해와 소신호 선형화를 통해 상태공간 모델을 구성합니다.
 
-## 연구 개요
+### Converter and APWM Waveform
 
-직렬 공진형 컨버터는 공진 탱크의 교류 성분이 지배적이므로 일반적인 상태공간 평균화만으로는 소신호 모델을 얻기 어렵습니다. 이 프로젝트는 논문에서 사용한 EDF(Extended Describing Function) 기반 모델링 절차를 Python 코드로 옮겨, APWM 제어 입력에 대한 출력 전압 응답을 계산합니다.
+논문에서 다루는 대상은 풀브리지 직렬 공진형 컨버터입니다.
 
-구현된 응답은 다음 두 가지입니다.
+![Full-Bridge Series Resonant Converter](docs/images/paper_src_converter.png)
 
-- Fig.3: 단일 동작점에서 `Vg -> Vo`, `Duty -> Vo`, `Frequency -> Vo` 응답 비교
-- Fig.4: 부하가 `5 ohm`과 `20 ohm`으로 달라질 때 `Duty -> Vo` 응답 비교
+APWM 제어는 스위칭 노드 전압 `VAB`의 듀티를 비대칭으로 조절합니다. EDF 모델링에서는 이 파형을 DC 성분, sine 성분, cosine 성분으로 나누어 공진 회로 상태변수와 연결합니다.
 
-## 재현 결과
+![APWM VAB waveform](docs/images/paper_apwm_vab_waveform.png)
+
+### Modeling Point
+
+논문 모델의 핵심은 다음 흐름입니다.
+
+```text
+Nonlinear SRC equations
+  -> EDF approximation of APWM and rectifier nonlinearities
+  -> steady-state solution
+  -> small-signal linearization
+  -> state-space matrices A, B, C, D
+  -> transfer functions for Vg, Duty, Frequency inputs
+```
+
+C2402 자료의 소신호 회로 모델 이미지는 이 모델링 구조를 이해하는 데 참고할 수 있습니다.
+
+![Small-signal circuit model](docs/images/small_signal_circuit_model.png)
+
+### Paper System Parameters
+
+논문 표의 시스템 파라미터는 아래와 같습니다.
+
+| Parameter | Value |
+| --- | --- |
+| `Vg` | `120 V` |
+| `Vo` | `200 V` |
+| `L` | `198 uH` |
+| `C` | `51 nF` |
+| `Cf` | `32 uF` |
+| `RL` | `20 ohm / 5 ohm` |
+
+> 이 저장소의 Python 재현은 `data/`에 포함된 Matlab/PleCS 검증 파일을 기준으로 실행합니다. 따라서 실제 실행 파라미터는 `src/parameters.py`와 `data/cal_parameter_APWM.m`을 기준으로 확인합니다.
+
+## Reproduced Results
 
 ### Figure 3. Frequency Response Result
 
-한 동작점에서 선간 입력, 듀티, 주파수 입력에 대한 출력 전압 응답을 비교합니다.
+한 개의 동작점에서 세 입력에 대한 출력 전압 응답을 비교합니다.
+
+- Line-to-Output: `Vg -> Vo`
+- Control-to-Output(Duty): `Duty -> Vo`
+- Control-to-Output(Frequency): `Frequency -> Vo`
 
 ![Figure 3 frequency response](docs/images/figure3_frequency_response.png)
 
 ### Figure 4. Control-to-Output(Duty)
 
-스위칭 주파수를 고정하고 부하 조건과 듀티를 바꿨을 때의 제어-출력 응답을 비교합니다.
+스위칭 주파수를 고정하고, 부하 저항과 듀티를 바꿔 동일 출력전압 조건에서 `Duty -> Vo` 응답을 비교합니다.
+
+- `Duty=0.361`, `R=5 ohm`
+- `Duty=0.185`, `R=20 ohm`
 
 ![Figure 4 duty-to-output response](docs/images/figure4_duty_to_output.png)
 
-## 프로젝트 구조
+## Project Structure
 
 ```text
 .
@@ -43,10 +80,12 @@
 │   ├── CCM_D_APWM_D0.361_F1.05_R5_Vo200.csv
 │   ├── CCM_W_APWM_D0.361_F1.05_R5_Vo200.csv
 │   └── CCM_D_APWM_D0.185_F1.05_R20_Vo200.csv
-├── docs/
-│   └── images/
-│       ├── figure3_frequency_response.png
-│       └── figure4_duty_to_output.png
+├── docs/images/
+│   ├── paper_src_converter.png
+│   ├── paper_apwm_vab_waveform.png
+│   ├── small_signal_circuit_model.png
+│   ├── figure3_frequency_response.png
+│   └── figure4_duty_to_output.png
 └── src/
     ├── parameters.py
     ├── apwm_model.py
@@ -57,67 +96,28 @@
     └── main_fig4.py
 ```
 
-## 주요 파일 설명
+## Source Files
 
-| 파일 | 역할 |
+| File | Description |
 | --- | --- |
-| `src/parameters.py` | Matlab 입력 파라미터와 정상상태 계산식을 Python dict 기반으로 정리 |
-| `src/apwm_model.py` | `cal_parameter_APWM.m`의 중간 변수, A/B/C/D 행렬, 전달함수 추출 구현 |
-| `src/frequency_response.py` | 전달함수의 gain/phase 계산 및 PLECS 위상 기준 정렬 |
-| `src/plecs.py` | PLECS CSV 데이터 로드 |
-| `src/plot.py` | Matlab bodeplot과 유사한 gain/phase subplot 출력 |
-| `src/main_fig3.py` | 논문 Fig.3 재현 실행 파일 |
-| `src/main_fig4.py` | 논문 Fig.4 재현 실행 파일 |
+| `src/parameters.py` | Operating-point and derived parameter calculation |
+| `src/apwm_model.py` | APWM small-signal coefficients, state-space matrices, and transfer functions |
+| `src/frequency_response.py` | Gain/phase calculation and phase alignment for PLECS comparison |
+| `src/plecs.py` | PLECS CSV loader |
+| `src/plot.py` | Bode-style gain/phase plotting |
+| `src/main_fig3.py` | Reproduces Fig.3 |
+| `src/main_fig4.py` | Reproduces Fig.4 |
 
-## 실행 방법
-
-PyCharm에서 프로젝트를 열고 아래 파일을 각각 실행합니다.
+## Run
 
 ```bash
 python src/main_fig3.py
 python src/main_fig4.py
 ```
 
-터미널에서 실행할 경우에도 동일합니다. 그래프는 Matplotlib 창으로 표시됩니다.
-
-## 구현 기준
-
-Python 구현은 Matlab/PleCS 원본 값을 바꾸지 않고 재현하는 것을 목표로 합니다.
-
-- 수식 기준: `data/cal_parameter_APWM.m`
-- Fig.4 조건 기준: `data/Control_to_Output_Duty_Paper.m`
-- 검증 기준: `data/*.csv`
-- PLECS 데이터 마지막 주파수: `26.37 kHz`
-
-그래프의 x축은 PLECS 데이터 범위와 맞추기 위해 `100 Hz`부터 `26.37 kHz`까지 표시합니다.
-
-## 모델 흐름
-
-```text
-동작점 설정
-  ↓
-정상상태 파라미터 계산
-  ↓
-EDF 기반 중간 계수 계산
-  ↓
-상태공간 행렬 A, B, C, D 구성
-  ↓
-입력별 전달함수 추출
-  ↓
-Python 모델 Bode 응답과 PLECS CSV 비교
-```
-
-## 참고 자료
-
-프로젝트 작성에 참고한 로컬 자료입니다.
-
-- `/home/parkdoyoung/Documents/자소서 필요자료/비대칭 PWM 제어 기반 직렬 공진형 컨버터의 소신호 모델링_박도영_241122.pdf`
-- `/home/parkdoyoung/Documents/학부연구생/C2402(Dbpia_published)/Matlab/`
-- `/home/parkdoyoung/Documents/학부연구생/C2402(Dbpia_published)/Plecs/Series_Resonant_Converter_APWM.plecs`
-- `/home/parkdoyoung/Documents/학부연구생/C2402(Dbpia_published)/Figure/`
-
 ## Notes
 
-- `data`의 Matlab 코드와 CSV는 기준 자료이므로 수정하지 않습니다.
-- Python 코드는 Matlab의 1-based input 번호를 Python-control의 0-based index로 변환해 사용합니다.
-- PLECS phase와 Python-control phase는 360도 단위 표현이 달라, 그래프 표시 단계에서 PLECS 기준으로 정렬합니다.
+- Matlab files and PLECS CSV files in `data/` are kept as reference data.
+- Python-control uses zero-based indexing, so Matlab input numbers are converted when extracting transfer functions.
+- The x-axis is limited to `26.37 kHz`, matching the last frequency point in the PLECS CSV files.
+- PLECS and Python-control may express the same phase with different 360-degree offsets, so phase is aligned only for plotting.
