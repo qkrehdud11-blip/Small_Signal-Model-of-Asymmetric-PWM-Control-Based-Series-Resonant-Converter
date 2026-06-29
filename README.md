@@ -1,6 +1,8 @@
 # APWM 직렬 공진형 컨버터 소신호 모델링
 
-비대칭 PWM(Asymmetric PWM, APWM) 제어 기반 직렬 공진형 컨버터(Series Resonant Converter, SRC)의 소신호 모델을 Python으로 구현한 프로젝트입니다. Matlab 기준 코드의 APWM 소신호 모델을 Python으로 옮기고, PLECS CSV 데이터와 비교해 Fig.3/Fig.4 주파수 응답을 재현했습니다.
+비대칭 PWM(Asymmetric PWM, APWM) 제어 기반 직렬 공진형 컨버터(Series Resonant Converter, SRC)의 소신호 모델을 Python으로 구현한 프로젝트입니다.
+
+Matlab 기준 소신호 모델을 Python 코드로 옮기고, PLECS CSV 데이터와 비교해 논문의 Fig.3/Fig.4 주파수 응답을 재현했습니다.
 
 ## 모델링 배경
 
@@ -10,15 +12,19 @@
   <img src="docs/images/paper_src_converter.png" alt="Full-Bridge Series Resonant Converter" width="560">
 </p>
 
+<p align="center"><b>풀브리지 직렬 공진형 컨버터 회로</b></p>
+
 APWM 제어에서는 브리지 출력전압 `VAB`의 듀티를 비대칭으로 조절합니다. 논문에서는 이 스위칭 파형과 정류단의 비선형 항을 EDF(Extended Describing Function)로 근사해 소신호 모델을 구성합니다.
 
 <p align="center">
   <img src="docs/images/paper_apwm_vab_waveform.png" alt="APWM VAB waveform" width="560">
 </p>
 
+<p align="center"><b>APWM 제어에 따른 브리지 출력전압 VAB 파형</b></p>
+
 ## 소신호 모델링 과정
 
-이 프로젝트에서 구현한 계산 흐름은 다음과 같습니다.
+Python 코드의 계산 흐름은 다음과 같습니다.
 
 ```text
 동작 조건 설정
@@ -30,13 +36,13 @@ APWM 제어에서는 브리지 출력전압 `VAB`의 듀티를 비대칭으로 �
   -> Python Bode 응답과 PLECS CSV 비교
 ```
 
-Matlab 기준 함수 `cal_parameter_APWM.m`은 위 과정에서 정상상태 값, APWM 계수, A/B/C/D 행렬, 전달함수를 계산합니다. Python에서는 이 역할을 `parameters.py`와 `apwm_model.py`로 나누어 구현했습니다.
+Matlab 기준 함수 `cal_parameter_APWM.m`에서 계산하던 정상상태 값, APWM 계수, A/B/C/D 행렬, 전달함수 계산을 Python 코드로 분리해 구현했습니다.
 
 ## 시뮬레이션 결과
 
 ### Fig.3: 입력별 출력 응답
 
-`D=0.361`, `Fsn=1.05`, `R=5 ohm` 조건에서 세 입력에 대한 출력전압 `Vo` 응답을 비교합니다.
+`D=0.361`, `Fsn=1.05`, `R=5 ohm` 조건에서 입력전압, 듀티, 주파수 변화가 출력전압 `Vo`에 미치는 응답을 비교합니다.
 
 | 입력 | 의미 | PLECS 데이터 |
 | --- | --- | --- |
@@ -48,7 +54,7 @@ Matlab 기준 함수 `cal_parameter_APWM.m`은 위 과정에서 정상상태 값
 
 ### Fig.4: 부하 조건별 Duty-to-Output 응답
 
-`Fsn=1.05`, `Vo=200 V` 조건에서 부하와 듀티가 다른 두 케이스의 `D -> Vo` 응답을 비교합니다.
+`Fsn=1.05` 조건에서 부하와 듀티가 다른 두 케이스의 `D -> Vo` 응답을 비교합니다.
 
 | Duty | Load | PLECS 데이터 |
 | --- | --- | --- |
@@ -69,7 +75,7 @@ python src/main_fig4.py
 
 ## 파라미터 기준
 
-현재 Python 코드는 `data/`에 포함된 Matlab/PLECS 데이터 기준으로 맞췄습니다.
+현재 Python 코드는 `data/`에 포함된 Matlab/PLECS 기준 조건에 맞춰 실행됩니다.
 
 | 파라미터 | 값 |
 | --- | --- |
