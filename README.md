@@ -6,7 +6,7 @@ Matlab 기준 소신호 모델을 Python 코드로 옮기고, PLECS CSV 데이�
 
 ## 모델링 배경
 
-대상 회로는 풀브리지 직렬 공진형 컨버터입니다. 직렬 공진형 컨버터는 공진 탱크의 전류와 전압이 스위칭 주파수 부근의 교류 성분으로 동작하기 때문에, 단순한 상태공간 평균화만으로는 공진 동특성을 표현하기 어렵습니다.
+대상 회로는 풀브리지 직렬 공진형 컨버터입니다. SRC는 공진 인덕터 `L`과 공진 커패시터 `C`를 이용해 스위칭 주파수 부근에서 에너지를 전달하며, 소프트 스위칭을 통해 스위칭 손실을 줄일 수 있습니다.
 
 <p align="center">
   <img src="docs/images/paper_src_converter.png" alt="Full-Bridge Series Resonant Converter" width="560">
@@ -14,13 +14,29 @@ Matlab 기준 소신호 모델을 Python 코드로 옮기고, PLECS CSV 데이�
 
 <p align="center"><b>풀브리지 직렬 공진형 컨버터 회로</b></p>
 
-APWM 제어에서는 브리지 출력전압 `VAB`의 듀티를 비대칭으로 조절합니다. 논문에서는 이 스위칭 파형과 정류단의 비선형 항을 EDF(Extended Describing Function)로 근사해 소신호 모델을 구성합니다.
+일반적인 상태공간 평균화는 한 주기 평균값을 중심으로 모델을 만들기 때문에, 공진 탱크의 교류 성분을 충분히 표현하기 어렵습니다. 이 논문은 APWM으로 구동되는 SRC를 CCM 조건에서 해석하고, 공진 성분을 보존하기 위해 EDF(Extended Describing Function)를 사용합니다.
 
 <p align="center">
   <img src="docs/images/paper_apwm_vab_waveform.png" alt="APWM VAB waveform" width="560">
 </p>
 
 <p align="center"><b>APWM 제어에 따른 브리지 출력전압 VAB 파형</b></p>
+
+## 논문 이론 정리
+
+APWM 제어에서는 브리지 출력전압 `VAB`의 듀티를 비대칭으로 조절합니다. 듀티가 변하면 `VAB`의 기본파 성분과 DC 성분이 함께 변하고, 이 변화가 공진 탱크 전류와 출력전압 응답에 영향을 줍니다.
+
+논문에서 사용하는 모델링 핵심은 다음과 같습니다.
+
+| 구분 | 내용 |
+| --- | --- |
+| 비선형 상태방정식 | `VAB`, 공진 전류 `i`, 공진 커패시터 전압, 출력 필터 전압을 포함한 SRC의 비선형 방정식을 세움 |
+| EDF 근사 | `VAB`, `sgn(i) * vCf`, `|i|` 같은 비선형 항을 DC, sine, cosine 성분으로 근사 |
+| APWM 특성 | APWM의 `VAB` 파형은 기본파 성분뿐 아니라 DC 성분도 포함하므로 이를 별도로 반영 |
+| 선형화 | 정상상태 주변에서 변동분을 잡고 A/B/C/D 상태공간 행렬을 구성 |
+| 전달함수 | 상태공간 모델에서 `Vg -> Vo`, `D -> Vo`, `W -> Vo` 전달함수를 추출해 주파수 응답을 계산 |
+
+EDF를 적용하면 공진 탱크의 상태를 평균값 하나로 없애지 않고, sine/cosine 성분으로 나누어 다룰 수 있습니다. 이 때문에 듀티 변화와 스위칭 주파수 변화가 공진 전류, 공진 커패시터 전압, 출력전압에 미치는 영향을 주파수 영역에서 확인할 수 있습니다.
 
 ## 소신호 모델링 과정
 
@@ -37,6 +53,15 @@ Python 코드의 계산 흐름은 다음과 같습니다.
 ```
 
 Matlab 기준 함수 `cal_parameter_APWM.m`에서 계산하던 정상상태 값, APWM 계수, A/B/C/D 행렬, 전달함수 계산을 Python 코드로 분리해 구현했습니다.
+
+| 논문/Matlab 계산 | Python 구현 |
+| --- | --- |
+| 공진주파수, 스위칭 주파수, 정상상태 계산 | `src/parameters.py` |
+| EDF 기반 APWM 계수 계산 | `src/apwm_model.py` |
+| A/B/C/D 상태공간 행렬 구성 | `src/apwm_model.py` |
+| 입력별 전달함수 추출 | `src/apwm_model.py` |
+| Bode gain/phase 계산 | `src/frequency_response.py` |
+| PLECS CSV와 그래프 비교 | `src/plecs.py`, `src/plot.py` |
 
 ## 시뮬레이션 결과
 
@@ -88,7 +113,6 @@ python src/main_fig4.py
 | `rc` | `1e-3 ohm` |
 | `Fsn` | `1.05` |
 | `R` | `5 ohm`, `20 ohm` |
-
 
 ## 코드 구조
 
