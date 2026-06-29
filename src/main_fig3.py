@@ -123,7 +123,7 @@ def main():
             color=response["color"],
         )
 
-    finish_bode_axes(figure, gain_axis, phase_axis)
+    finish_bode_axes(figure, gain_axis, phase_axis, legend_outside=True)
     plt.show()
 
 

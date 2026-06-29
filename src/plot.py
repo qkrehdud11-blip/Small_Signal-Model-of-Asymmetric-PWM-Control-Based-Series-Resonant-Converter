@@ -86,7 +86,26 @@ def setup_bode_axes(title, gain_ylim=None, phase_ylim=None, xlim=(100, 100000)):
     return figure, gain_axis, phase_axis
 
 
-def finish_bode_axes(figure, gain_axis, phase_axis):
+def finish_bode_axes(
+    figure,
+    gain_axis,
+    phase_axis,
+    legend_outside=False,
+):
+    if legend_outside:
+        handles, labels = gain_axis.get_legend_handles_labels()
+        figure.legend(
+            handles,
+            labels,
+            loc="lower left",
+            bbox_to_anchor=(0.08, 0.02),
+            fontsize=8,
+            ncol=2,
+            frameon=True,
+        )
+        figure.tight_layout(rect=(0, 0.16, 1, 1))
+        return
+
     gain_axis.legend(loc="best", fontsize=8)
     phase_axis.legend(loc="best", fontsize=8)
     figure.tight_layout()
