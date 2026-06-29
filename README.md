@@ -1,31 +1,126 @@
-# APWM 직렬 공진형 컨버터 소신호 모델링
+# 비대칭 PWM 제어 기반 직렬 공진형 컨버터의 소신호 모델링
 
-비대칭 PWM(Asymmetric PWM, APWM) 제어 기반 직렬 공진형 컨버터(Series Resonant Converter, SRC)의 소신호 모델을 Python으로 구현한 프로젝트입니다. Matlab 기준 코드의 계산식을 Python으로 옮기고, PLECS 주파수 응답 데이터와 비교해 논문의 Fig.3/Fig.4 결과를 재현했습니다.
+이 저장소는 논문 **「비대칭 PWM 제어 기반 직렬 공진형 컨버터의 소신호 모델링」**에서 제안한 APWM(Asymmetric PWM) 기반 SRC(Series Resonant Converter) 소신호 모델을 Python으로 재현한 프로젝트입니다.
 
-## 이 프로젝트에서 확인할 수 있는 것
+핵심 목표는 Matlab 원본 코드(`cal_parameter_APWM.m`)에서 계산하던 APWM 소신호 모델을 Python으로 옮기고, PLECS에서 얻은 주파수 응답 데이터와 비교해 논문의 Fig.3, Fig.4 형태로 확인하는 것입니다.
 
-- 논문 Fig.3 재현: `Vg -> Vo`, `Duty -> Vo`, `Frequency -> Vo` 주파수 응답
-- 논문 Fig.4 재현: 부하 조건별 `Duty -> Vo` 주파수 응답
-- Matlab 코드 기반 APWM 소신호 모델의 Python 변환
-- PLECS CSV 데이터와 Python 전달함수 결과 비교
+## 프로젝트 목적
+
+직렬 공진형 컨버터는 공진 탱크의 전류와 전압이 스위칭 주파수 부근에서 교류 성분으로 동작합니다. 그래서 일반적인 상태공간 평균화만 적용하면 공진 회로의 동특성을 제대로 표현하기 어렵습니다.
+
+논문에서는 이 문제를 해결하기 위해 APWM 스위칭 파형과 정류단의 비선형 항을 EDF(Extended Describing Function)로 근사합니다. 그 뒤 정상상태 해를 구하고, 소신호 선형화를 통해 상태공간 행렬을 구성합니다.
+
+이 프로젝트는 그 과정을 Python 코드로 정리해 다음 전달함수를 계산합니다.
+
+- `Vg -> Vo`: 입력전압 변화에 대한 출력전압 응답
+- `Duty -> Vo`: 듀티 변화에 대한 출력전압 응답
+- `Frequency -> Vo`: 스위칭 주파수 변화에 대한 출력전압 응답
+
+## 논문에서 다루는 회로와 APWM 파형
+
+대상 회로는 풀브리지 직렬 공진형 컨버터입니다.
+
+<p align="center">
+  <img src="docs/images/paper_src_converter.png" alt="Full-Bridge Series Resonant Converter" width="560">
+</p>
+
+APWM 제어에서는 브리지 출력전압 `VAB`의 듀티를 비대칭으로 조절합니다. 논문에서는 이 파형을 DC 성분, sine 성분, cosine 성분으로 나누어 공진 회로 상태변수와 연결합니다.
+
+<p align="center">
+  <img src="docs/images/paper_apwm_vab_waveform.png" alt="APWM VAB waveform" width="560">
+</p>
+
+## 모델링 흐름
+
+논문과 Matlab 코드의 계산 흐름은 아래와 같이 정리할 수 있습니다.
+
+```text
+비선형 SRC 상태방정식
+  -> APWM VAB 파형의 EDF 근사
+  -> 정류단 비선형 항의 EDF 근사
+  -> 정상상태 전압/전류 계산
+  -> 소신호 계수 계산
+  -> 상태공간 행렬 A, B, C, D 구성
+  -> 입력별 전달함수 추출
+  -> Matlab/Python 모델과 PLECS 주파수 응답 비교
+```
+
+Python 코드에서는 이 흐름이 다음 파일로 나뉩니다.
+
+| 단계 | Python 파일 |
+| --- | --- |
+| 동작점 및 파생 파라미터 계산 | `src/parameters.py` |
+| APWM 계수와 상태공간 행렬 계산 | `src/apwm_model.py` |
+| 전달함수의 주파수 응답 계산 | `src/frequency_response.py` |
+| PLECS CSV 데이터 로드 | `src/plecs.py` |
+| Fig.3/Fig.4 그래프 출력 | `src/main_fig3.py`, `src/main_fig4.py` |
+
+## 기준 파일
+
+`data/` 폴더는 Python 구현의 기준이 되는 Matlab 코드와 PLECS 검증 데이터를 담고 있습니다.
+
+| 파일 | 역할 |
+| --- | --- |
+| `data/cal_parameter_APWM.m` | APWM 소신호 계수, A/B/C/D 행렬, 전달함수 계산의 Matlab 기준 코드 |
+| `data/Control_to_Output_Duty_Paper.m` | Fig.4 조건과 Matlab plotting 흐름 기준 |
+| `data/CCM_Vg_APWM_D0.361_F1.05_R5_Vo200.csv` | Fig.3 `Vg -> Vo` PLECS 데이터 |
+| `data/CCM_D_APWM_D0.361_F1.05_R5_Vo200.csv` | Fig.3/Fig.4 `Duty -> Vo`, `R=5 ohm` PLECS 데이터 |
+| `data/CCM_W_APWM_D0.361_F1.05_R5_Vo200.csv` | Fig.3 `Frequency -> Vo` PLECS 데이터 |
+| `data/CCM_D_APWM_D0.185_F1.05_R20_Vo200.csv` | Fig.4 `Duty -> Vo`, `R=20 ohm` PLECS 데이터 |
+
+## 파라미터 기준
+
+논문 표에는 시스템 파라미터가 아래와 같이 제시되어 있습니다.
+
+| 파라미터 | 논문 표 기준 |
+| --- | --- |
+| `Vg` | `120 V` |
+| `Vo` | `200 V` |
+| `L` | `198 uH` |
+| `C` | `51 nF` |
+| `Cf` | `32 uF` |
+| `RL` | `20 ohm / 5 ohm` |
+
+다만 현재 저장소의 Python 코드는 `data/`에 포함된 Matlab/PleCS 검증 파일을 그대로 재현하는 것을 우선합니다. 따라서 실제 실행 기준은 아래와 같습니다.
+
+| 파라미터 | 실행 코드 기준 |
+| --- | --- |
+| `Vg` | `400 V` |
+| `Vo` | `200 V` |
+| `L` | `197 uH` |
+| `C` | `51 nF` |
+| `Cf` | `32 uF` |
+| `rs` | `1e-3 ohm` |
+| `rc` | `1e-3 ohm` |
+| `Fsn` | `1.05` |
+| `RL` | `5 ohm`, `20 ohm` |
+
+이 값들은 `src/parameters.py`와 `data/Control_to_Output_Duty_Paper.m`의 값을 기준으로 맞춰져 있습니다. 논문 표와 일부 값이 다른 이유는 README에서 값을 수정하기보다, 현재 포함된 Matlab/PleCS 검증 데이터와 Python 코드가 같은 조건을 사용하도록 맞추는 것이 목적이기 때문입니다.
 
 ## 재현 결과
 
 ### Fig.3 주파수 응답 결과
 
-하나의 동작점에서 입력 종류에 따른 출력 전압 응답을 비교합니다.
+Fig.3은 하나의 동작점에서 세 입력에 대한 출력전압 응답을 비교합니다.
+
+- `Vg -> Vo`
+- `Duty -> Vo`
+- `Frequency -> Vo`
 
 ![Figure 3 frequency response](docs/images/figure3_frequency_response.png)
 
 ### Fig.4 제어(듀티)-출력 주파수 응답
 
-부하 저항과 듀티 조건이 달라질 때의 `Duty -> Vo` 응답을 비교합니다.
+Fig.4는 스위칭 주파수를 고정하고, 부하 저항이 달라질 때 `Duty -> Vo` 응답이 어떻게 달라지는지 비교합니다.
+
+- `Duty=0.361`, `R=5 ohm`
+- `Duty=0.185`, `R=20 ohm`
 
 ![Figure 4 duty-to-output response](docs/images/figure4_duty_to_output.png)
 
 ## 실행 방법
 
-PyCharm 또는 터미널에서 아래 파일을 실행하면 됩니다.
+PyCharm 또는 터미널에서 아래 파일을 실행합니다.
 
 ```bash
 python src/main_fig3.py
@@ -43,71 +138,10 @@ python src/main_fig4.py
 └── src/           Python 구현 코드
 ```
 
-| 파일 | 역할 |
-| --- | --- |
-| `src/parameters.py` | 동작점과 파생 파라미터 계산 |
-| `src/apwm_model.py` | APWM 소신호 계수, 상태공간 행렬, 전달함수 계산 |
-| `src/frequency_response.py` | Bode gain/phase 계산 및 PLECS 기준 phase 정렬 |
-| `src/plecs.py` | PLECS CSV 데이터 로드 |
-| `src/plot.py` | gain/phase 그래프 출력 유틸 |
-| `src/main_fig3.py` | Fig.3 재현 실행 파일 |
-| `src/main_fig4.py` | Fig.4 재현 실행 파일 |
-
-## 논문 기반 모델링 개요
-
-대상 회로는 풀브리지 직렬 공진형 컨버터입니다.
-
-<p align="center">
-  <img src="docs/images/paper_src_converter.png" alt="Full-Bridge Series Resonant Converter" width="560">
-</p>
-
-APWM 제어에서는 브리지 전압 `VAB`의 듀티를 비대칭으로 조절합니다. 논문에서는 이 스위칭 파형을 EDF(Extended Describing Function)로 근사하여 DC 성분, sine 성분, cosine 성분으로 나누고, 이를 공진 회로의 상태변수와 연결합니다.
-
-<p align="center">
-  <img src="docs/images/paper_apwm_vab_waveform.png" alt="APWM VAB waveform" width="560">
-</p>
-
-전체 모델링 흐름은 다음과 같습니다.
-
-```text
-비선형 SRC 상태방정식
-  -> APWM 파형과 정류단 비선형성의 EDF 근사
-  -> 정상상태 해 계산
-  -> 소신호 선형화
-  -> 상태공간 행렬 A, B, C, D 구성
-  -> 입력별 전달함수 추출
-  -> PLECS CSV와 주파수 응답 비교
-```
-
-## 논문 시스템 파라미터
-
-논문 표에 제시된 시스템 파라미터는 아래와 같습니다.
-
-| 파라미터 | 값 |
-| --- | --- |
-| `Vg` | `120 V` |
-| `Vo` | `200 V` |
-| `L` | `198 uH` |
-| `C` | `51 nF` |
-| `Cf` | `32 uF` |
-| `RL` | `20 ohm / 5 ohm` |
-
-이 저장소의 Python 재현은 `data/`에 포함된 Matlab/PLECS 검증 파일을 기준으로 실행합니다. 실제 실행에 사용되는 값은 `src/parameters.py`와 `data/cal_parameter_APWM.m`에서 확인할 수 있습니다.
-
-## 기준 데이터
-
-| 파일 | 역할 |
-| --- | --- |
-| `data/cal_parameter_APWM.m` | APWM 모델 파라미터와 상태공간 행렬의 Matlab 기준 코드 |
-| `data/Control_to_Output_Duty_Paper.m` | Fig.4 제어(듀티)-출력 비교용 Matlab 기준 코드 |
-| `data/CCM_Vg_APWM_D0.361_F1.05_R5_Vo200.csv` | `Vg -> Vo` PLECS 데이터 |
-| `data/CCM_D_APWM_D0.361_F1.05_R5_Vo200.csv` | `Duty -> Vo`, `R=5 ohm` PLECS 데이터 |
-| `data/CCM_W_APWM_D0.361_F1.05_R5_Vo200.csv` | `Frequency -> Vo` PLECS 데이터 |
-| `data/CCM_D_APWM_D0.185_F1.05_R20_Vo200.csv` | `Duty -> Vo`, `R=20 ohm` PLECS 데이터 |
-
 ## 참고 사항
 
 - `data/`의 Matlab 코드와 PLECS CSV는 검증 기준이므로 수정하지 않습니다.
 - Matlab은 입력 번호가 1부터 시작하지만, Python-control은 0부터 시작하므로 전달함수 추출 시 index를 변환합니다.
+- Matlab 기준 입력 번호는 `1=Vg`, `2=Duty`, `3=Frequency`, `4=Io`입니다.
 - PLECS CSV의 마지막 주파수는 `26.37 kHz`이므로 그래프도 해당 범위까지만 표시합니다.
 - PLECS와 Python-control은 같은 phase를 360도 차이로 표현할 수 있어, 그래프 표시 단계에서만 phase를 PLECS 기준으로 정렬합니다.
