@@ -18,14 +18,12 @@ def calculate_model_parameters(params):
     """
 
     duty = params["duty"]
-
     v_g = params["v_g"]
 
     l = params["l_resonant"]
     c = params["c_resonant"]
 
     r_s = params["r_s"]
-
     w_s = params["w_s"]
 
     v_cf = params["v_cf"]
@@ -37,19 +35,32 @@ def calculate_model_parameters(params):
     v_s = params["v_s"]
     v_c = params["v_c"]
 
-    # MATLAB 그대로 변환
+    # MATLAB:
+    # K_vs = 2/pi*(1-cos(2*pi*Duty));
     k_vs = 2 / np.pi * (1 - np.cos(2 * np.pi * duty))
 
+    # MATLAB:
+    # K_vc = 2/pi*sin(2*pi*Duty);
     k_vc = 2 / np.pi * np.sin(2 * np.pi * duty)
 
+    # MATLAB:
+    # E_ds = 4*V_g*sin(2*pi*Duty);
     e_ds = 4 * v_g * np.sin(2 * np.pi * duty)
 
+    # MATLAB:
+    # E_dc = 4*V_g*cos(2*pi*Duty);
     e_dc = 4 * v_g * np.cos(2 * np.pi * duty)
 
+    # MATLAB:
+    # E_s = L*I_c;
     e_s = l * i_c
 
+    # MATLAB:
+    # E_c = L*I_s;
     e_c = l * i_s
 
+    # MATLAB:
+    # Z_s = Ws*L+4/pi*V_cf*I_s*I_c/(I_p^2)^(3/2);
     z_s = (
         w_s * l
         + (4 / np.pi)
@@ -59,6 +70,8 @@ def calculate_model_parameters(params):
         / ((i_p ** 2) ** (3 / 2))
     )
 
+    # MATLAB:
+    # Z_c = -Ws*L+4/pi*V_cf*I_s*I_c/(I_p^2)^(3/2);
     z_c = (
         -w_s * l
         + (4 / np.pi)
@@ -68,16 +81,28 @@ def calculate_model_parameters(params):
         / ((i_p ** 2) ** (3 / 2))
     )
 
+    # MATLAB:
+    # G = Ws*C;
     g = w_s * c
 
+    # MATLAB:
+    # K_s = 2/pi*I_s/I_p;
     k_s = 2 / np.pi * i_s / i_p
 
+    # MATLAB:
+    # K_c = 2/pi*I_c/I_p;
     k_c = 2 / np.pi * i_c / i_p
 
+    # MATLAB:
+    # J_s = C*V_c;
     j_s = c * v_c
 
+    # MATLAB:
+    # J_c = C*V_s;
     j_c = c * v_s
 
+    # MATLAB:
+    # R_s = r_s + 4/pi*V_cf*I_c^2/I_p^3;
     r_s_equivalent = (
         r_s
         + (4 / np.pi)
@@ -86,6 +111,8 @@ def calculate_model_parameters(params):
         / (i_p ** 3)
     )
 
+    # MATLAB:
+    # R_c = r_s + 4/pi*V_cf*I_s^2/I_p^3;
     r_c_equivalent = (
         r_s
         + (4 / np.pi)
@@ -94,6 +121,8 @@ def calculate_model_parameters(params):
         / (i_p ** 3)
     )
 
+    # MATLAB:
+    # I_d = 2*(-I_s*sin(2*pi*Duty)+I_c*cos(2*pi*Duty));
     i_d = 2 * (
         -i_s * np.sin(2 * np.pi * duty)
         + i_c * np.cos(2 * np.pi * duty)
@@ -118,12 +147,12 @@ def calculate_model_parameters(params):
         "i_d": i_d,
     }
 
+
 def build_state_space_matrices(params, model):
     """
     MATLAB cal_parameter_APWM.m의 A, B, CC, DD 행렬 생성 부분을 Python으로 변환합니다.
     """
 
-    # 기본 파라미터
     duty = params["duty"]
     r_load = params["r_load"]
     r_c = params["r_c"]
@@ -134,7 +163,6 @@ def build_state_space_matrices(params, model):
     r_cc = params["r_cc"]
     theta = params["theta"]
 
-    # 중간 모델 파라미터
     k_vs = model["k_vs"]
     k_vc = model["k_vc"]
     e_ds = model["e_ds"]
@@ -213,17 +241,9 @@ def extract_transfer_function(system, input_index=1, output_index=0):
     MATLAB:
         [num, den] = ss2tf(A, B, C, D, Input)
         G = tf(num(Output, :), den)
-
-    Python:
-        StateSpace에서 원하는 SISO 전달함수를 추출한 뒤
-        TransferFunction 형태로 변환합니다.
     """
 
-    # MATLAB Input=2, Output=1
-    # Python input_index=1, output_index=0
     siso_system = system[output_index, input_index]
-
-    # StateSpace -> TransferFunction
     transfer_function = control.ss2tf(siso_system)
 
     return transfer_function
