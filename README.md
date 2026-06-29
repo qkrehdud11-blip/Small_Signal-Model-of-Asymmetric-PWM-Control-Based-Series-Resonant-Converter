@@ -10,11 +10,11 @@
 
 논문에서 다루는 대상은 풀브리지 직렬 공진형 컨버터입니다.
 
-![Full-Bridge Series Resonant Converter](docs/images/paper_src_converter.png)
+![APWM VAB waveform](docs/images/paper_apwm_vab_waveform.png)
 
 APWM 제어는 스위칭 노드 전압 `VAB`의 듀티를 비대칭으로 조절합니다. EDF 모델링에서는 이 파형을 DC 성분, sine 성분, cosine 성분으로 나누어 공진 회로 상태변수와 연결합니다.
 
-![APWM VAB waveform](docs/images/paper_apwm_vab_waveform.png)
+![Full-Bridge Series Resonant Converter](docs/images/paper_src_converter.png)
 
 ### Modeling Point
 
