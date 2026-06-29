@@ -15,6 +15,7 @@ def plot_response_pair(
     frequency_hz,
     color,
 ):
+    # Plot PLECS and Python model on the same gain/phase axes.
     gain_db, phase_deg = calculate_bode_from_tf(
         transfer_function,
         frequency_hz,

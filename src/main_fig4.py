@@ -30,6 +30,8 @@ from plot import (
 
 
 def make_transfer_function(duty, f_sn, load_resistance):
+    # Fig.4 compares Duty-to-Output, which is MATLAB Input=2.
+    # Python-control uses zero-based indexing, so Duty input is index 1.
     case = get_apwm_case(
         duty=duty,
         f_sn=f_sn,
@@ -80,6 +82,7 @@ def main():
         },
     ]
 
+    # PLECS CSV data ends at 26.37 kHz, so the model line is trimmed there.
     frequency_hz = np.logspace(2, np.log10(2.637e4), 700)
 
     figure, gain_axis, phase_axis = setup_bode_axes(
